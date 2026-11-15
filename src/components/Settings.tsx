@@ -3,7 +3,8 @@ import {useRef,useState} from 'react';
 import {listModels,VOICES} from '@/lib/providers';
 import {reconcileModels} from '@/lib/contracts';
 export type SettingsValue={keys:string[];enabled:boolean;models:string;engine:'edge'|'azure'|'gemini'|'device';edgeVoice:'auto'|'male'|'female';geminiVoice:string;ttsModels:string;azureKey:string;azureRegion:string;subtitleInput:string};
-export const INITIAL_SETTINGS:SettingsValue={keys:[''],enabled:true,models:'gemini-flash-lite-latest',engine:'edge',edgeVoice:'male',geminiVoice:'Zephyr',ttsModels:'gemini-3.8-flash-lite-tts',azureKey:'',azureRegion:'southeastasia',subtitleInput:''};
+const githubPages = process.env.NEXT_PUBLIC_GITHUB_PAGES === '1';
+export const INITIAL_SETTINGS:SettingsValue={keys:[''],enabled:true,models:'gemini-flash-lite-latest',engine:githubPages?'gemini':'edge',edgeVoice:'male',geminiVoice:'Zephyr',ttsModels:'gemini-3.8-flash-lite-tts',azureKey:'',azureRegion:'southeastasia',subtitleInput:''};
 export default function Settings({value,onChange,log,disabled}:{value:SettingsValue;onChange:(s:SettingsValue)=>void;log:(m:string)=>void;disabled:boolean}){
   const [tab,setTab]=useState('Providers'),[show,setShow]=useState(false),[checking,setChecking]=useState(false),[statuses,setStatuses]=useState<Record<number,string>>({});
   const busy=useRef(false);const current=useRef(value);current.current=value;
@@ -42,7 +43,7 @@ export default function Settings({value,onChange,log,disabled}:{value:SettingsVa
       <div className="label-row"><label htmlFor="models">Text model (one)</label><button onClick={()=>void check(undefined,true)}>↻ Load models</button></div><textarea id="models" rows={1} value={value.models} onChange={e=>update({models:e.target.value})}/><p className="hint">Transcription and translation use this model only. Temporary server errors retry the same model; no automatic switching.</p>
     </>}
     {tab==='Pipeline'&&<>
-      <label htmlFor="engine">Khmer voice</label><select id="engine" value={value.engine} onChange={e=>update({engine:e.target.value as SettingsValue['engine']})}><option value="edge">Edge voice — Sreymom / Piseth</option><option value="azure">Microsoft Khmer voices — Piseth / Sreymom</option><option value="gemini">Gemini voice — exportable</option><option value="device">This device’s Khmer voice — playback only</option></select>
+      <label htmlFor="engine">Khmer voice</label><select id="engine" value={value.engine} onChange={e=>update({engine:e.target.value as SettingsValue['engine']})}>{!githubPages&&<><option value="edge">Edge voice — Sreymom / Piseth</option><option value="azure">Microsoft Khmer voices — Piseth / Sreymom</option></>}<option value="gemini">Gemini voice — exportable</option><option value="device">This device’s Khmer voice — playback only</option></select>
       {value.engine==='edge'&&<div className="stack">
         <label htmlFor="edge-selection">Edge voice</label>
         <select id="edge-selection" value={value.edgeVoice} onChange={e=>update({edgeVoice:e.target.value as SettingsValue['edgeVoice']})}>

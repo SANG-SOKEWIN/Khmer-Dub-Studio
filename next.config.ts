@@ -11,4 +11,11 @@ const config: NextConfig = {
     ]}];
   }
 };
-export default config;
+export default process.env.NEXT_PUBLIC_GITHUB_PAGES === '1'
+  ? {
+      output: 'export',
+      trailingSlash: true,
+      basePath: process.env.NEXT_PUBLIC_PAGES_BASE_PATH ?? '',
+      poweredByHeader: false,
+    } satisfies NextConfig
+  : config;

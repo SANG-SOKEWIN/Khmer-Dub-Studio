@@ -114,3 +114,14 @@ migrations. GitHub Pages alone cannot run the Node and Python voice endpoint.
 
 After deployment, open the HTTPS URL, sign in, and run a small Khmer dub through
 preview and video download to verify the host's speech connectivity.
+
+### GitHub Pages
+
+The GitHub Pages workflow publishes the browser version. In the repository, set
+**Settings → Pages → Build and deployment → Source** to **GitHub Actions**.
+Then run **Deploy GitHub Pages** from the Actions tab if it has not started.
+
+On Pages, enter your own Gemini key for transcription, translation, and Gemini
+voice. Video preview, subtitle overlays and download run in the browser. Edge
+and Azure speech require the server build. To build the Pages version locally,
+run `npm ci` and `node scripts/build-pages.mjs`.
