@@ -11,4 +11,4 @@ RUN npm run build
 ENV NODE_ENV=production EDGE_TTS_PYTHON=/opt/edge-voice/bin/python
 EXPOSE 3000
 USER node
-CMD ["npm", "start"]
+CMD ["sh", "-c", "test -n \"$STUDIO_ACCESS_PASSWORD\" || { echo \"Set STUDIO_ACCESS_PASSWORD before hosting the studio.\" >&2; exit 1; }; exec npm start"]
