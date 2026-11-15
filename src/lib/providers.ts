@@ -1,7 +1,7 @@
 import {GEMINI_BASE, modelNames, retryable, jsonText, speechRequest, reconcileModels, requireKhmer} from './contracts.ts';
 import {validateSegments, type Segment} from './subtitles.ts';
 import {pcmToWav} from './wav.ts';
-export type ProviderConfig={keys:string[];models:string;singleModel?:boolean;signal:AbortSignal;log:(message:string)=>void};
+export type ProviderConfig={keys:string[];models:string;singleModel?:boolean;waitForSpeechQuota?:boolean;signal:AbortSignal;log:(message:string)=>void};
 export const VOICES=['Zephyr','Kore','Leda','Aoede','Callirrhoe','Autonoe','Despina','Erinome','Laomedeia','Achernar','Gacrux','Pulcherrima','Vindemiatrix','Sulafat','Puck','Charon','Fenrir','Orus','Enceladus','Iapetus','Umbriel','Algieba','Algenib','Rasalgethi','Alnilam','Schedar','Achird','Zubenelgenubi','Sadachbia','Sadaltager'];
 export async function listModels(key:string,signal?:AbortSignal):Promise<string[]> {
   if(!key.trim())throw new Error('Add a Gemini key first.');
@@ -27,22 +27,39 @@ export async function resolveProviderConfig(config:ProviderConfig,kind:'text'|'s
   config.log(`Using discovered ${kind} models: ${models.split('\n').slice(0,3).join(', ')}.`);
   return {...config,keys,models};
 }
-async function quotaHint(response:Response):Promise<string>{
+async function quotaHint(response:Response):Promise<{message:string; seconds?:number}>{
   const payload=await response.json().catch(()=>null);
   const details=payload?.error?.details;
   if(Array.isArray(details)){
     const violations=details.flatMap(detail=>Array.isArray(detail?.violations)?detail.violations:[]);
     if(violations.some(item=>String(item?.quotaValue)==='0')){
-      return 'Google reports a quota of zero. Check model access for this project or choose another Khmer voice model.';
+      return {message:'Google reports a quota of zero. Check model access for this project or choose another Khmer voice model.'};
     }
-    const delay=details.find(detail=>detail?.['@type']==='type.googleapis.com/google.rpc.RetryInfo')?.retryDelay;
-    if(typeof delay==='string' && /^\d+(?:\.\d+)?s$/.test(delay) && Number.parseFloat(delay)>0){
-      return `Google suggests waiting at least ${Math.ceil(Number.parseFloat(delay))} seconds before retrying.`;
+    if(violations.some(item=>/perday|per.day/i.test(item?.quotaId ?? ''))){
+      return {message:'Google reports a daily quota limit. Check the reset time in Google AI Studio.'};
     }
   }
+  const delay=Array.isArray(details)
+    ? details.find(detail=>detail?.['@type']==='type.googleapis.com/google.rpc.RetryInfo')?.retryDelay
+    : undefined;
   const header=response.headers.get('Retry-After');
-  if(header && /^\d+$/.test(header) && Number(header)>0)return `Google suggests waiting at least ${header} seconds before retrying.`;
-  return 'Check this model’s rate limits in Google AI Studio.';
+  const seconds=Math.max(
+    typeof delay==='string' && /^\d+(?:\.\d+)?s$/.test(delay) ? Math.ceil(Number.parseFloat(delay)) : 0,
+    header && /^\d+$/.test(header) ? Number(header) : 0,
+  );
+  if(Number.isSafeInteger(seconds) && seconds>0){
+    return {seconds,message:`Google suggests waiting at least ${seconds} seconds before retrying.`};
+  }
+  return {message:'Check this model’s rate limits in Google AI Studio.'};
+}
+
+function waitForRetry(ms:number,signal:AbortSignal):Promise<void>{
+  signal.throwIfAborted();
+  return new Promise((resolve,reject)=>{
+    const abort=()=>{clearTimeout(timer);reject(signal.reason);};
+    const timer=setTimeout(()=>{signal.removeEventListener('abort',abort);resolve();},ms);
+    signal.addEventListener('abort',abort,{once:true});
+  });
 }
 async function generateSingle(config:ProviderConfig,body:unknown):Promise<Record<string,any>>{
   const models=modelNames(config.models);if(models.length!==1)throw new Error('Choose exactly one model. Automatic model switching is disabled.');
@@ -55,12 +72,20 @@ async function generateSingle(config:ProviderConfig,body:unknown):Promise<Record
       const response=await fetch(`${GEMINI_BASE}/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body),signal:AbortSignal.any([config.signal,AbortSignal.timeout(60000)])});
       status=response.status;
       if(response.ok){const result=await response.json();if(!result.candidates?.length)throw new Error('Google returned no content.');return result;}
-      if(status===429)throw new Error(`Selected model ${model} returned HTTP 429. ${await quotaHint(response)}`);
+      if(status===429){
+        const hint=await quotaHint(response);
+        if(config.waitForSpeechQuota && attempt<2 && hint.seconds && hint.seconds<=60){
+          config.log(`Google paused speech requests. Retrying this clip in ${hint.seconds+1} seconds…`);
+          await waitForRetry((hint.seconds+1)*1000,config.signal);
+          continue;
+        }
+        throw new Error(`Selected model ${model} returned HTTP 429. ${hint.message}`);
+      }
       if(![500,502,503,504].includes(status))throw new Error(`Selected model ${model} returned HTTP ${status}. No other model was tried.${status===404?' Choose a different model explicitly.':''}`);
     }catch(error){config.signal.throwIfAborted();if(!(error instanceof Error&&error.name==='TimeoutError'))throw error;}
     if(attempt===2)throw new Error(`${model} failed after 3 attempts (${status?'HTTP '+status:'timeout'}). Your selected model was not changed.`);
     config.log(`${status?'HTTP '+status:'Request timed out'}; retrying the same model after a short delay.`);
-    await new Promise<void>((resolve,reject)=>{const abort=()=>{clearTimeout(timer);reject(config.signal.reason);};const timer=setTimeout(()=>{config.signal.removeEventListener('abort',abort);resolve();},1000*2**attempt);config.signal.addEventListener('abort',abort,{once:true});if(config.signal.aborted)abort();});
+    await waitForRetry(1000*2**attempt,config.signal);
   }
   throw new Error('Generation failed.');
 }
@@ -159,7 +184,7 @@ export async function geminiSpeech(text:string,voice:string,config:ProviderConfi
     ? {text,speech_metadata:{style:'Speak naturally in Cambodian Khmer.'}}
     : {text:'Speak the following Khmer text naturally, without adding any words:\n'+text};
   const voiceConfig=modern?{voice}:{prebuiltVoiceConfig:{voiceName:voice}};
-  const result=await generate(config,{
+  const result=await generate({...config,waitForSpeechQuota:true},{
     contents:[{role:'user',parts:[part]}],
     generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig}}
   });
