@@ -1,0 +1,7 @@
+Model selection fix: key verification now reconciles missing configured models with account-discovered generateContent models. Available preferences remain first. Text and TTS candidates are separated; model-list presence does not guarantee audio support or quota. HTTP 404 and 429 diagnostics are distinct. Validation: 27 tests pass; Prisma generation and full TypeScript check pass. Live AI calls were not performed.
+
+Follow-up: every transcription job resolves models before extracting audio, independent of asynchronous UI key checks. HTTP 404 triggers one discovery refresh with up to five new candidates; attempted model/key pairs are not retried. A successful model is reused for later chunks. Regression coverage: 30 tests pass; full TypeScript check passes. Live provider success remains unverified.
+
+Single-model change: UI defaults to gemini-flash-lite-latest and Gemini speech. Jobs skip discovery and use exactly one selected model/key. Temporary 5xx/timeouts retry the same model up to three attempts; 404/quota errors stop. Key checks do not replace the text model. Speech uses a separate single TTS model; live TTS remains unverified. 36 tests and typecheck pass.
+
+Khmer-language fixes: enforce Khmer script and reject Thai; one repair request containing only rejected lines; retain validated lines; identify rejected subtitle ID and returned text. UI offers Translate text to Khmer without repeating transcription. 41 tests and full typecheck pass; live linguistic accuracy is not verified.

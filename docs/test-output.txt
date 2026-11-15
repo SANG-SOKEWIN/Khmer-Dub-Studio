@@ -1,0 +1,36 @@
+
+> khmer-dubbing-studio@0.1.0 test
+> node --experimental-strip-types --test tests/*.test.ts
+
+✔ SRT round trip preserves Khmer, text, timing and line breaks (2.440583ms)
+✔ plain lines are distributed evenly without rewriting wording (0.1275ms)
+✔ multiline text and UTF-8 BOM are accepted (0.063041ms)
+✔ timestamps validate minutes and milliseconds (0.11775ms)
+✔ invalid and overlapping subtitle times are rejected (0.241625ms)
+✔ empty, too long, malformed, and too many subtitles fail (0.173875ms)
+✔ gender and text validation rejects provider drift (0.06575ms)
+✔ audio chunk offsets preserve global timing (0.124916ms)
+✔ WAV headers and clipping are correct (0.152542ms)
+✔ raw PCM is wrapped as mono WAV (0.11525ms)
+✔ model names cannot inject URL paths or queries (0.164834ms)
+✔ SSML escapes markup and provider input is bounded (0.292458ms)
+✔ only transient/unavailable model statuses allow fallback (0.055375ms)
+✔ JSON parser accepts fenced JSON but never executes text (0.108ms)
+✔ audio mixing aligns sample rates, respects source volume and clips safely (1.930291ms)
+✔ WAV download is a real RIFF payload, not a renamed audio placeholder (0.352041ms)
+✔ provider fallback attempts next configured model on 503 (30.035708ms)
+✔ invalid key fails immediately, without retrying permission errors (0.272166ms)
+✔ empty or safety-blocked output is an error (0.153459ms)
+✔ transcription accepts no speech and validates timings (0.915ms)
+✔ translation preserves timing and rejects ID mismatches (0.504833ms)
+✔ voice response supports raw little-endian PCM (0.312833ms)
+✔ model discovery handles pages and filters non-generation models (0.327166ms)
+✔ cancellation stops requests before transmission (0.130417ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 170.736083
