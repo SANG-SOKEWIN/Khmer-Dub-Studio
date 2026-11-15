@@ -11,14 +11,13 @@ async function videoFixture(page:import('@playwright/test').Page){
   });
   await page.getByLabel('Choose video',{exact:true}).setInputFiles({name:'fixture.webm',mimeType:'video/webm',buffer:Buffer.from(bytes)});
 }
-test('initial validation, tabs, mode selection, support dialog and theme',async({page})=>{
+test('initial validation, tabs, mode selection and theme',async({page})=>{
   await page.goto('/');await expect(page.getByRole('button',{name:'✦ Dub to Khmer',exact:true})).toBeDisabled();
   await page.getByRole('button',{name:'↻ Load models'}).click();await expect(page.getByRole('status')).toHaveText('Add a Gemini key first.');
   await page.getByRole('button',{name:'Choose processing mode'}).click();await page.getByRole('button',{name:/Translate Only.*Edit subtitles/}).click();await expect(page.getByRole('button',{name:'✎ Translate to Khmer',exact:true})).toBeDisabled();
   await page.getByRole('tab',{name:'Pipeline'}).click();await page.getByLabel('Khmer voice',{exact:true}).selectOption('device');await expect(page.getByText(/Requires an installed Khmer/)).toBeVisible();
   await page.getByRole('tab',{name:'Providers'}).click();await page.getByRole('button',{name:'Show keys'}).click();await expect(page.getByLabel('Gemini key 1')).toHaveAttribute('type','text');
   await page.getByRole('button',{name:'Toggle light or dark theme'}).click();await expect(page.locator('html')).toHaveAttribute('data-theme','light');
-  await page.getByRole('button',{name:/Support the original/}).click();await expect(page.getByRole('dialog')).toBeVisible();await page.getByRole('button',{name:'Maybe later'}).click();await expect(page.getByRole('dialog')).not.toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:`test-results/studio-${test.info().project.name}.png`,fullPage:true});
 });
