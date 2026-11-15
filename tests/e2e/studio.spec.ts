@@ -13,6 +13,7 @@ async function videoFixture(page:import('@playwright/test').Page){
 }
 test('initial validation, tabs, mode selection and theme',async({page})=>{
   await page.goto('/');await expect(page.getByRole('button',{name:'✦ Dub to Khmer',exact:true})).toBeDisabled();
+  await page.getByRole('button',{name:'Settings',exact:true}).click();
   await page.getByRole('button',{name:'↻ Load models'}).click();await expect(page.getByRole('status')).toHaveText('Add a Gemini key first.');
   await page.getByRole('button',{name:'Choose processing mode'}).click();await page.getByRole('button',{name:/Translate Only.*Edit subtitles/}).click();await expect(page.getByRole('button',{name:'✎ Translate to Khmer',exact:true})).toBeDisabled();
   await page.getByRole('tab',{name:'Pipeline'}).click();await page.getByLabel('Khmer voice',{exact:true}).selectOption('device');await expect(page.getByText(/Requires an installed Khmer/)).toBeVisible();
@@ -25,6 +26,7 @@ test('real local import, subtitle bypass, editor, invalid timing and SRT downloa
   await page.goto('/');await videoFixture(page);
   // Some browsers initially expose Infinity for live-recorded WebM; seek to resolve it.
   await page.locator('video').evaluate(element=>{const video=element as HTMLVideoElement;if(!Number.isFinite(video.duration))video.currentTime=1e10;});
+  await page.getByRole('button',{name:'Settings',exact:true}).click();
   await page.getByRole('tab',{name:'Subtitles'}).click();await page.getByLabel('Khmer subtitles or text').fill('សួស្តី!\nអរគុណ។');
   await page.getByRole('button',{name:'Choose processing mode'}).click();await page.getByRole('button',{name:/Translate Only.*Edit subtitles/}).click();
   await expect(page.getByRole('button',{name:'✎ Translate to Khmer',exact:true})).toBeEnabled();await page.getByRole('button',{name:'✎ Translate to Khmer',exact:true}).click();
