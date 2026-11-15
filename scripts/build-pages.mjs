@@ -7,8 +7,13 @@ import {execFileSync} from 'node:child_process';
 const project = fileURLToPath(new URL('../', import.meta.url));
 const build = await mkdtemp(join(tmpdir(), 'khmer-pages-'));
 try {
-  for (const file of ['src', 'public', 'next.config.ts', 'next-env.d.ts', 'tsconfig.json', 'postcss.config.mjs', 'package.json', 'package-lock.json']) {
+  for (const file of ['src', 'next.config.ts', 'next-env.d.ts', 'tsconfig.json', 'postcss.config.mjs', 'package.json', 'package-lock.json']) {
     await cp(join(project, file), join(build, file), {recursive: true});
+  }
+  try {
+    await cp(join(project, 'public'), join(build, 'public'), {recursive: true});
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
   }
   await rm(join(build, 'src/app/api'), {recursive: true});
   await rm(join(build, 'src/proxy.ts'));
