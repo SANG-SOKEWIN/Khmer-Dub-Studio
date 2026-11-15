@@ -104,7 +104,7 @@ Connect the GitHub repository to a web host that runs Docker and supports outbou
 WebSocket connections to Microsoft. Build using the included Dockerfile and serve
 port 3000. Set these runtime environment variables in the host dashboard:
 
-- `APP_ORIGIN`: exact HTTPS URL for the studio, with no trailing slash.
+- `APP_ORIGIN`: exact HTTPS URL for the studio, with no trailing slash. On Render, the Edge route defaults to Render’s assigned HTTPS URL.
 - `STUDIO_ACCESS_PASSWORD`: strong private password. Sign in as `studio`.
 
 The password protects the hosted studio and its Edge voice route. Keep it out of

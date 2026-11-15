@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   const localDevelopment = process.env.NODE_ENV !== 'production' &&
     localOrigins.has(origin) && request.headers.get('host') === new URL(origin).host;
   const protectedHost = Boolean(process.env.STUDIO_ACCESS_PASSWORD) &&
-    origin.startsWith('https://') && origin === process.env.APP_ORIGIN;
+    origin.startsWith('https://') && origin === (process.env.APP_ORIGIN ?? process.env.RENDER_EXTERNAL_URL);
   if ((!localDevelopment && !protectedHost) || request.headers.get('sec-fetch-site') === 'cross-site') {
     return error('Edge voice requires localhost development or a protected HTTPS deployment.', 403);
   }
